@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>昵图网邮箱验证码</title>
+    <style>
+      body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #ffffff;
+        position: relative;
+      }
+      .container {
+        text-align: center;
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #808080;
+      }
+      .code {
+        font-size: 4em;
+        font-weight: bold;
+      }
+      .timestamp {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+        color: #808080;
+      }
+      button {
+        font-size: 1.2em;
+        padding: 10px 40px;
+        margin: 20px 5px;
+        background-color: #000000;
+        color: white;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #5e5e5e;
+      }
+      button[disabled] {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      #refresh-button {
+        background-color: #d3d3d3;
+        color: black;
+      }
+      #refresh-button:hover {
+        background-color: #b0b0b0;
+      }
+      #info {
+        margin-bottom: 20px;
+      }
+      .note-container {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        text-align: center;
+      }
+      .note {
+        font-size: 1em;
+        color: #808080;
+        margin: 5px 0; /* 增加上下间距 */
+      }
+    </style>
+    <script>
+      let countdownTime = 60
+      let countdownInterval
+      let refreshCooldown = false
+
+      function updateEmail() {
+        fetch('/update_email', {
+          headers: {
+            Authorization: localStorage.getItem('auth_code'),
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data) // 打印服务器响应
+            if (data.status === 'success') {
+              const code = data.code
+              document.getElementById('code').textContent = code
+            } else {
+              alert(data.message)
+            }
+          })
+          .catch((error) => console.error('Error:', error)) // 打印错误信息
+      }
+
+      function resetCountdown() {
+        clearInterval(countdownInterval)
+        countdownTime = 60
+        if (document.getElementById('countdown')) {
+          document.getElementById('countdown').textContent = countdownTime
+        }
+
+        countdownInterval = setInterval(() => {
+          countdownTime -= 1
+          if (document.getElementById('countdown')) {
+            document.getElementById('countdown').textContent = countdownTime
+          }
+          if (countdownTime <= 0) {
+            updateEmail()
+          }
+        }, 1000)
+      }
+
+      document.addEventListener('DOMContentLoaded', (event) => {
+        const authCode = localStorage.getItem('auth_code')
+        if (!authCode) {
+          window.location.href = '/login'
+        } else {
+          fetchData() // 初次加载时获取数据
+        }
+      })
+
+      function fetchData() {
+        fetch('/update_email', {
+          headers: {
+            Authorization: localStorage.getItem('auth_code'),
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data) // 打印服务器响应
+            if (data.status === 'success') {
+              const code = data.code
+              document.getElementById('code').textContent = code
+            } else {
+              alert(data.message)
+            }
+          })
+          .catch((error) => console.error('Error:', error)) // 打印错误信息
+      }
+
+      function copyToClipboard() {
+        const code = document.getElementById('code').textContent
+        if (code !== '无') {
+          if (navigator.clipboard) {
+            navigator.clipboard
+              .writeText(code)
+              .then(() => {
+                alert('验证码 ' + code + ' 已复制到剪贴板')
+              })
+              .catch((err) => {
+                console.error('Failed to copy text: ', err)
+              })
+          } else {
+            const textArea = document.createElement('textarea')
+            textArea.value = code
+            document.body.appendChild(textArea)
+            textArea.focus()
+            textArea.select()
+            try {
+              document.execCommand('copy')
+              alert('验证码 ' + code + ' 已复制到剪贴板')
+            } catch (err) {
+              console.error('Fallback: Oops, unable to copy', err)
+            }
+            document.body.removeChild(textArea)
+          }
+        } else {
+          alert('没有找到验证码')
+        }
+      }
+
+      function refreshNow() {
+        if (refreshCooldown) return
+
+        refreshCooldown = true
+        updateEmail()
+        let countdown = 15
+        const refreshButton = document.getElementById('refresh-button')
+        refreshButton.textContent = `${countdown}s`
+        refreshButton.disabled = true
+
+        const countdownInterval = setInterval(() => {
+          countdown -= 1
+          refreshButton.textContent = `${countdown}s`
+          if (countdown <= 0) {
+            clearInterval(countdownInterval)
+            refreshButton.textContent = '刷新'
+            refreshButton.disabled = false
+            refreshCooldown = false
+          }
+        }, 1000)
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>昵图网邮箱验证码</h1>
+      <div class="code" id="code">{{ code }}</div>
+      <div class="timestamp">
+        刷新时间：<span id="received_at">{{ received_at }}</span>
+      </div>
+      <button id="refresh-button" onclick="refreshNow()">刷新</button>
+      <button id="copy-button" onclick="copyToClipboard()">复制</button>
+    </div>
+    <div class="note-container">
+      <div class="note">验证邮箱为：1137583371@qq.com 验证码15分钟内有效</div>
+      <div class="note">
+        剩余可访问天数：<span id="remaining_days">{{ remaining_days }}</span> 天
+      </div>
+      <div class="note">
+        <!-- 授权码创建时间：<span id="created_at">{{ created_at }}</span> -->
+      </div>
+      <div class="note">
+        <!-- 授权码到期时间：<span id="expires_at">{{ expires_at }}</span> -->
+      </div>
+    </div>
+  </body>
+</html>

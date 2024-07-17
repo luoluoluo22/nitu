@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新增授权码</title>
+    <style>
+      body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #ffffff;
+      }
+      .container {
+        text-align: center;
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #808080;
+      }
+      input[type='datetime-local'] {
+        font-size: 1.2em;
+        padding: 10px;
+        margin: 20px 0;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        width: 80%;
+      }
+      button {
+        font-size: 1.2em;
+        padding: 10px 40px;
+        margin: 20px 5px;
+        background-color: #000000;
+        color: white;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #5e5e5e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>新增授权码</h1>
+      <form method="post">
+        <label for="expires_at">到期时间（可选）:</label>
+        <input type="datetime-local" id="expires_at" name="expires_at" />
+        <button type="submit">新增</button>
+      </form>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录</title>
+    <style>
+      body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #ffffff;
+        position: relative;
+      }
+      .container {
+        text-align: center;
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #808080;
+      }
+      .note {
+        font-size: 1em;
+        color: #808080;
+        margin: 5px 0;
+      }
+      label {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+        color: #808080;
+      }
+      input[type='text'] {
+        font-size: 1.2em;
+        padding: 10px;
+        margin: 10px 0;
+        width: 60%;
+        box-sizing: border-box;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+      }
+      input[type='submit'] {
+        font-size: 1.2em;
+        padding: 10px 40px;
+        margin: 20px 5px;
+        background-color: #000000;
+        color: white;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      input[type='submit']:hover {
+        background-color: #5e5e5e;
+      }
+      #error_message {
+        color: red;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>登录</h1>
+      <form method="post" onsubmit="saveAuthCode()">
+        <div id="error_message">验证码错误，请重试。</div>
+        <div>
+          <label for="auth_code">请上闲鱼向卖家获取授权码:</label>
+          <input type="text" name="auth_code" id="auth_code" required />
+        </div>
+        <div>
+          <input type="submit" value="提交" />
+        </div>
+      </form>
+    </div>
+    <script>
+      function saveAuthCode() {
+        const authCode = document.getElementById('auth_code').value
+        localStorage.setItem('auth_code', authCode)
+      }
+      document.addEventListener('DOMContentLoaded', (event) => {
+        const savedAuthCode = localStorage.getItem('auth_code')
+        if (savedAuthCode) {
+          document.getElementById('auth_code').value = savedAuthCode
+        }
+      })
+    </script>
+  </body>
+</html>

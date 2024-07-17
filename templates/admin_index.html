@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>管理员面板</title>
+    <style>
+      body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #ffffff;
+      }
+      .container {
+        text-align: center;
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #808080;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+      button {
+        font-size: 1.2em;
+        padding: 10px 20px;
+        margin: 20px 5px;
+        background-color: #000000;
+        color: white;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #5e5e5e;
+      }
+      .logout {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 1em;
+        color: #808080;
+      }
+    </style>
+    <script>
+      function copyToClipboard(text) {
+        const tempInput = document.createElement('input')
+        tempInput.value = text
+        document.body.appendChild(tempInput)
+        tempInput.select()
+        document.execCommand('copy')
+        document.body.removeChild(tempInput)
+        alert('授权码 ' + text + ' 已复制到剪贴板')
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>管理员面板</h1>
+      <a href="{{ url_for('admin_logout') }}" class="logout">登出</a>
+      <table>
+        <tr>
+          <th>授权码</th>
+          <th>创建时间</th>
+          <th>到期时间</th>
+          <th>操作</th>
+        </tr>
+        {% for code in auth_codes %}
+        <tr>
+          <td
+            onclick="copyToClipboard('{{ code.auth_code }}')"
+            style="cursor: pointer; color: blue; text-decoration: underline"
+          >
+            {{ code.auth_code }}
+          </td>
+          <td>{{ code.created_at }}</td>
+          <td>{{ code.expires_at }}</td>
+          <td>
+            <a href="{{ url_for('admin_edit', auth_code=code.auth_code) }}"
+              >编辑</a
+            >
+            <a href="{{ url_for('admin_delete', auth_code=code.auth_code) }}"
+              >删除</a
+            >
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      <a href="{{ url_for('admin_add') }}"><button>新增授权码</button></a>
+    </div>
+  </body>
+</html>
