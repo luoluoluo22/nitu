@@ -8,20 +8,24 @@ import email
 from bs4 import BeautifulSoup
 import os
 import csv
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
 
 app = Flask(__name__)
 
 # 存储最近一封邮件内容及其接收时间
 latest_email = {"code": "无", "received_at": datetime.now(), "sent_at": "未知"}
 
-IMAP_SERVER = 'imap.qq.com'
-IMAP_PORT = 993
-USERNAME = '1137583371@qq.com'
-AUTHORIZATION_CODE = 'wrtckdfbevlujdec'
-AUTH_CODE_FILE = 'auth_codes.csv'
-
-AUTH_CODE_EXPIRY_DAYS = 30
-COOKIE_DURATION_DAYS = 30  # 设置cookie有效期为30天
+# 从环境变量中读取配置信息
+IMAP_SERVER = os.getenv('IMAP_SERVER')
+IMAP_PORT = int(os.getenv('IMAP_PORT'))
+USERNAME = os.getenv('USERNAME')
+AUTHORIZATION_CODE = os.getenv('AUTHORIZATION_CODE')
+AUTH_CODE_FILE = os.getenv('AUTH_CODE_FILE')
+AUTH_CODE_EXPIRY_DAYS = int(os.getenv('AUTH_CODE_EXPIRY_DAYS'))
+COOKIE_DURATION_DAYS = int(os.getenv('COOKIE_DURATION_DAYS'))
 
 # 初始化CSV文件
 def init_csv():
