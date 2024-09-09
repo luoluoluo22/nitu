@@ -4,4 +4,4 @@
 python app.py &
 
 # 启动 admin.py
-python admin.py
+python admin.py &
