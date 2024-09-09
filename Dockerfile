@@ -8,4 +8,4 @@ COPY . .
 RUN chmod +x start.sh
 EXPOSE 80
 ENV FLASK_ENV=production
-CMD ["sh", "-c", "nginx -g 'daemon off;' & ./start.sh"]
+CMD ["sh", "-c", "./start.sh && sleep 5 && nginx -g 'daemon off;'"]
