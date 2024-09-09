@@ -23,4 +23,4 @@ ENV FLASK_ENV=production
 
 # 启动应用程序
 # CMD python app.py & python admin.py
-CMD service nginx start && ./start.sh
+CMD ["sh", "-c", "service nginx start && ./start.sh"]
