@@ -8,24 +8,20 @@ import email
 from bs4 import BeautifulSoup
 import os
 import csv
-from dotenv import load_dotenv
-
-# 加载 .env 文件
-load_dotenv()
 
 app = Flask(__name__)
 
 # 存储最近一封邮件内容及其接收时间
 latest_email = {"code": "无", "received_at": datetime.now(), "sent_at": "未知"}
 
-# 从环境变量中读取配置信息
-IMAP_SERVER = os.getenv('IMAP_SERVER')
-IMAP_PORT = int(os.getenv('IMAP_PORT'))
-USERNAME = os.getenv('USERNAME')
-AUTHORIZATION_CODE = os.getenv('AUTHORIZATION_CODE')
-AUTH_CODE_FILE = os.getenv('AUTH_CODE_FILE')
-AUTH_CODE_EXPIRY_DAYS = int(os.getenv('AUTH_CODE_EXPIRY_DAYS'))
-COOKIE_DURATION_DAYS = int(os.getenv('COOKIE_DURATION_DAYS'))
+IMAP_SERVER = 'imap.qq.com'
+IMAP_PORT = 993
+USERNAME = '1137583371@qq.com'
+AUTHORIZATION_CODE = 'wrtckdfbevlujdec'
+AUTH_CODE_FILE = 'auth_codes.csv'
+
+AUTH_CODE_EXPIRY_DAYS = 30
+COOKIE_DURATION_DAYS = 30  # 设置cookie有效期为30天
 
 # 初始化CSV文件
 def init_csv():
@@ -46,14 +42,12 @@ def get_valid_auth_codes():
                 auth_code, created_at, expires_at = row
                 expires_at = datetime.fromisoformat(expires_at)
                 created_at = datetime.fromisoformat(created_at)
-                if expires_at > datetime.now():
-                    valid_auth_codes.append(auth_code)
-                    auth_code_data[auth_code] = {
-                        "created_at": created_at,
-                        "expires_at": expires_at
-                    }
-    if not valid_auth_codes:
-        raise Exception("未找到有效的授权码")
+                
+                valid_auth_codes.append(auth_code)
+                auth_code_data[auth_code] = {
+                    "created_at": created_at,
+                    "expires_at": expires_at
+                }
     return valid_auth_codes, auth_code_data
 
 # 初始化CSV文件
@@ -136,16 +130,29 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    error = False
+    error = None
+    expires_at = None
     if request.method == 'POST':
         auth_code = request.form['auth_code']
-        valid_auth_codes, auth_code_data = get_valid_auth_codes()  # 每次登录时重新读取CSV文件
+        # print(auth_code)
+        valid_auth_codes, auth_code_data = get_valid_auth_codes()
+        # print(valid_auth_codes,auth_code_data)
         if auth_code in valid_auth_codes:
-            resp = make_response(redirect(url_for('index')))
-            resp.set_cookie('auth_code', auth_code, max_age=COOKIE_DURATION_DAYS * 24 * 60 * 60)
-            return resp
-        error = True
-    return render_template('login.html', error=error)
+            auth_code_info = auth_code_data[auth_code]
+            expires_at = auth_code_info['expires_at']
+            print(expires_at)
+            if expires_at < datetime.now():
+                error = f"已过期，过期时间：{expires_at.strftime('%Y-%m-%d %H:%M')}。请前往商家处续费。"
+                return redirect(url_for('login') + "?error=" + error)
+            else:
+                resp = make_response(redirect(url_for('index')))
+                resp.set_cookie('auth_code', auth_code, max_age=COOKIE_DURATION_DAYS * 24 * 60 * 60)
+                return resp
+        else:
+            error = "授权码不存在或输入错误，请重新输入。"
+            return redirect(url_for('login') + "?error=" + error)
+    return render_template('login.html', error=error, expires_at=expires_at)
+
 
 @app.route('/update_email', methods=['GET'])
 def update_email():
