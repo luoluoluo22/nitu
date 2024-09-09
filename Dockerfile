@@ -12,10 +12,10 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # 暴露应用程序端口
-EXPOSE 5002
+EXPOSE 5000 5002
 
 # 设置环境变量（可选）
 ENV FLASK_ENV=production
 
 # 启动应用程序
-CMD ["python", "admin.py"]
+CMD python app.py & python admin.py
