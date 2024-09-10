@@ -20,7 +20,7 @@ def get_db_connection():
         user=os.getenv('DB_USER'),
         password=os.getenv('DB_PASSWORD'),
         database=os.getenv('DB_NAME'),
-        port=3307
+        port=os.getenv('DB_PORT')
     )
 
 # 读取所有授权码
