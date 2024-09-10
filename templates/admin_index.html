@@ -60,12 +60,12 @@
     <script>
       function copyToClipboard(text) {
         const tempInput = document.createElement('input')
-        tempInput.value = text
+        tempInput.value = '授权码：' + text
         document.body.appendChild(tempInput)
         tempInput.select()
         document.execCommand('copy')
         document.body.removeChild(tempInput)
-        alert('授权码 ' + text + ' 已复制到剪贴板')
+        // alert('授权码 ' + text + ' 已复制到剪贴板')
       }
     </script>
   </head>
