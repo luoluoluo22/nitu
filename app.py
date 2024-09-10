@@ -7,51 +7,60 @@ import imaplib
 import email
 from bs4 import BeautifulSoup
 import os
-import csv
+import mysql.connector
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
 
 app = Flask(__name__)
-
 # 存储最近一封邮件内容及其接收时间
 latest_email = {"code": "无", "received_at": datetime.now(), "sent_at": "未知"}
-
-IMAP_SERVER = 'imap.qq.com'
+# 从环境变量中读取配置
+IMAP_SERVER = os.getenv('IMAP_SERVER')
 IMAP_PORT = 993
-USERNAME = '1137583371@qq.com'
-AUTHORIZATION_CODE = 'wrtckdfbevlujdec'
-AUTH_CODE_FILE = 'auth_codes.csv'
+EMAILUSERNAME = os.getenv('EMAILUSERNAME')
+AUTHORIZATION_CODE = os.getenv('AUTHORIZATION_CODE')
+DB_CONFIG = {
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'host': os.getenv('DB_HOST'),
+    'database': os.getenv('DB_NAME'),
+    'port': 3307
+}
 
 AUTH_CODE_EXPIRY_DAYS = 30
 COOKIE_DURATION_DAYS = 30  # 设置cookie有效期为30天
 
-# 初始化CSV文件
-def init_csv():
-    if not os.path.exists(AUTH_CODE_FILE):
-        with open(AUTH_CODE_FILE, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['auth_code', 'created_at', 'expires_at'])
+# 初始化数据库连接
+def get_db_connection():
+    return mysql.connector.connect(**DB_CONFIG)
 
-# 读取所有有效的授权码
+# 获取有效的授权码
 def get_valid_auth_codes():
     valid_auth_codes = []
     auth_code_data = {}
-    if os.path.exists(AUTH_CODE_FILE):
-        with open(AUTH_CODE_FILE, mode='r') as file:
-            reader = csv.reader(file)
-            next(reader)  # 跳过标题行
-            for row in reader:
-                auth_code, created_at, expires_at = row
-                expires_at = datetime.fromisoformat(expires_at)
-                created_at = datetime.fromisoformat(created_at)
-                
-                valid_auth_codes.append(auth_code)
-                auth_code_data[auth_code] = {
-                    "created_at": created_at,
-                    "expires_at": expires_at
-                }
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = "SELECT auth_code, created_at, expires_at FROM auth_codes"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    
+    for row in rows:
+        auth_code = row['auth_code']
+        created_at = row['created_at']
+        expires_at = row['expires_at']
+        
+        valid_auth_codes.append(auth_code)
+        auth_code_data[auth_code] = {
+            "created_at": created_at,
+            "expires_at": expires_at
+        }
+    
+    cursor.close()
+    conn.close()
     return valid_auth_codes, auth_code_data
-
-# 初始化CSV文件
-init_csv()
 
 def get_email_body(msg):
     email_body = None
@@ -71,7 +80,7 @@ def check_emails():
     print("Checking emails...")  # 确保函数被调用
     try:
         mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
-        mail.login(USERNAME, AUTHORIZATION_CODE)
+        mail.login(EMAILUSERNAME, AUTHORIZATION_CODE)
         mail.select('inbox')
         status, email_ids = mail.search(None, 'ALL')
         if status == 'OK':
@@ -114,7 +123,7 @@ def check_emails():
 @app.route('/')
 def index():
     auth_code = request.cookies.get('auth_code')
-    valid_auth_codes, auth_code_data = get_valid_auth_codes()  # 每次加载页面时重新读取CSV文件
+    valid_auth_codes, auth_code_data = get_valid_auth_codes()  # 每次加载页面时重新读取数据库
     if auth_code in valid_auth_codes:
         auth_code_info = auth_code_data[auth_code]
         created_at = auth_code_info['created_at']
@@ -134,13 +143,10 @@ def login():
     expires_at = None
     if request.method == 'POST':
         auth_code = request.form['auth_code']
-        # print(auth_code)
         valid_auth_codes, auth_code_data = get_valid_auth_codes()
-        # print(valid_auth_codes,auth_code_data)
         if auth_code in valid_auth_codes:
             auth_code_info = auth_code_data[auth_code]
             expires_at = auth_code_info['expires_at']
-            print(expires_at)
             if expires_at < datetime.now():
                 error = f"已过期，过期时间：{expires_at.strftime('%Y-%m-%d %H:%M')}。请前往商家处续费。"
                 return redirect(url_for('login') + "?error=" + error)
@@ -153,11 +159,10 @@ def login():
             return redirect(url_for('login') + "?error=" + error)
     return render_template('login.html', error=error, expires_at=expires_at)
 
-
 @app.route('/update_email', methods=['GET'])
 def update_email():
     auth_code = request.cookies.get('auth_code')
-    valid_auth_codes, auth_code_data = get_valid_auth_codes()  # 每次更新邮件时重新读取CSV文件
+    valid_auth_codes, auth_code_data = get_valid_auth_codes()  # 每次更新邮件时重新读取数据库
     if auth_code in valid_auth_codes:
         check_emails()
         auth_code_info = auth_code_data[auth_code]
