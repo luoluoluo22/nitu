@@ -4,7 +4,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # 复制依赖文件
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # 复制应用代码
