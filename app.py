@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import os
 import mysql.connector
 from dotenv import load_dotenv
+from db import get_db_connection  # 导入数据库连接模块
 
 # 加载 .env 文件
 load_dotenv()
@@ -21,20 +22,9 @@ IMAP_SERVER = os.getenv('IMAP_SERVER')
 IMAP_PORT = 993
 EMAILUSERNAME = os.getenv('EMAILUSERNAME')
 AUTHORIZATION_CODE = os.getenv('AUTHORIZATION_CODE')
-DB_CONFIG = {
-    'user': os.getenv('DB_USER'),
-    'password': os.getenv('DB_PASSWORD'),
-    'host': os.getenv('DB_HOST'),
-    'database': os.getenv('DB_NAME'),
-    'port': 3307
-}
 
 AUTH_CODE_EXPIRY_DAYS = 30
 COOKIE_DURATION_DAYS = 30  # 设置cookie有效期为30天
-
-# 初始化数据库连接
-def get_db_connection():
-    return mysql.connector.connect(**DB_CONFIG)
 
 # 获取有效的授权码
 def get_valid_auth_codes():
@@ -62,6 +52,7 @@ def get_valid_auth_codes():
     conn.close()
     return valid_auth_codes, auth_code_data
 
+# 获取邮件内容
 def get_email_body(msg):
     email_body = None
     for part in msg.walk():
@@ -76,6 +67,7 @@ def get_email_body(msg):
             break
     return email_body
 
+# 检查邮件
 def check_emails():
     print("Checking emails...")  # 确保函数被调用
     try:
@@ -120,6 +112,7 @@ def check_emails():
     except Exception as e:
         print(f"发生错误：{e}")
 
+# 首页
 @app.route('/')
 def index():
     auth_code = request.cookies.get('auth_code')
@@ -137,6 +130,7 @@ def index():
                                expires_at=expires_at.strftime('%Y-%m-%d %H:%M:%S'))
     return redirect(url_for('login'))
 
+# 登录页面
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -159,6 +153,7 @@ def login():
             return redirect(url_for('login') + "?error=" + error)
     return render_template('login.html', error=error, expires_at=expires_at)
 
+# 更新邮件接口
 @app.route('/update_email', methods=['GET'])
 def update_email():
     auth_code = request.cookies.get('auth_code')
