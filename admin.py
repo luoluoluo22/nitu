@@ -133,4 +133,4 @@ def admin_edit(auth_code):
     return render_template('admin_edit.html', auth_code=code_to_edit)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5003)
+    app.run(host='0.0.0.0', port=5002)
