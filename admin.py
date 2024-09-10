@@ -11,8 +11,8 @@ load_dotenv()
 
 app = Flask(__name__)
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
-AUTH_CODE_FILE = os.getenv('AUTH_CODE_FILE')
-COOKIE_DURATION_DAYS = int(os.getenv('COOKIE_DURATION_DAYS'))
+AUTH_CODE_FILE = 'auth_codes.csv'
+COOKIE_DURATION_DAYS = 365
 
 # 初始化CSV文件
 def init_csv():
