@@ -67,7 +67,7 @@ def admin_logout():
     resp.set_cookie('admin_logged_in', '', expires=0)
     return resp
 
-@app.route('/')
+@app.route('/admin')
 def admin_index():
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
