@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, make_response
+from flask import Blueprint, render_template, request, redirect, url_for
 from datetime import datetime, timedelta
 import random
 import string
@@ -9,8 +9,8 @@ from db import get_db_connection  # 引入数据库连接模块
 
 # 加载 .env 文件
 load_dotenv()
-
-app = Flask(__name__)
+# 创建 Blueprint
+admin_bp = Blueprint('admin', __name__)
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 COOKIE_DURATION_DAYS = 365
 
@@ -28,7 +28,7 @@ def read_auth_codes():
 def generate_auth_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
-@app.route('/admin/login', methods=['GET', 'POST'])
+@admin_bp.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         password = request.form['password']
@@ -40,13 +40,13 @@ def admin_login():
             return render_template('admin_login.html', error=True)
     return render_template('admin_login.html', error=False)
 
-@app.route('/admin/logout')
+@admin_bp.route('/admin/logout')
 def admin_logout():
     resp = make_response(redirect(url_for('admin_login')))
     resp.set_cookie('admin_logged_in', '', expires=0)
     return resp
 
-@app.route('/admin')
+@admin_bp.route('/admin')
 def admin_index():
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
@@ -54,7 +54,7 @@ def admin_index():
     auth_codes = read_auth_codes()
     return render_template('admin_index.html', auth_codes=auth_codes)
 
-@app.route('/admin/add', methods=['GET', 'POST'])
+@admin_bp.route('/admin/add', methods=['GET', 'POST'])
 def admin_add():
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
@@ -80,7 +80,7 @@ def admin_add():
     
     return render_template('admin_add.html')
 
-@app.route('/admin/delete/<auth_code>')
+@admin_bp.route('/admin/delete/<auth_code>')
 def admin_delete(auth_code):
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
@@ -93,7 +93,7 @@ def admin_delete(auth_code):
     conn.close()
     return redirect(url_for('admin_index'))
 
-@app.route('/admin/edit/<auth_code>', methods=['GET', 'POST'])
+@admin_bp.route('/admin/edit/<auth_code>', methods=['GET', 'POST'])
 def admin_edit(auth_code):
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
