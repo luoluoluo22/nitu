@@ -1,21 +1,18 @@
-# 使用官方的 Python 3.9 镜像作为基础镜像
-FROM python:3.9
+# Dockerfile
+FROM python:3.9-slim
 
-# 设置工作目录
 WORKDIR /app
 
-# 复制项目的依赖文件到容器中
-COPY requirements.txt .
+# 复制依赖文件
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 复制项目代码到容器中
+# 复制应用代码
 COPY . .
 
-# 暴露应用使用的端口
-EXPOSE 5000
-EXPOSE 5002
+# 设置环境变量
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
 
-# 运行 start.sh 脚本来启动应用
-CMD ["./start.sh"]
+# 启动 Flask 应用
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
