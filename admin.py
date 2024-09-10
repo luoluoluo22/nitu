@@ -2,48 +2,36 @@ from flask import Flask, render_template, request, redirect, url_for, make_respo
 from datetime import datetime, timedelta
 import random
 import string
-import csv
 import os
 from dotenv import load_dotenv
+import mysql.connector
 
 # 加载 .env 文件
 load_dotenv()
 
 app = Flask(__name__)
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
-AUTH_CODE_FILE = 'auth_codes.csv'
 COOKIE_DURATION_DAYS = 365
 
-# 初始化CSV文件
-def init_csv():
-    if not os.path.exists(AUTH_CODE_FILE):
-        with open(AUTH_CODE_FILE, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['auth_code', 'created_at', 'expires_at'])
+# 获取数据库连接
+def get_db_connection():
+    return mysql.connector.connect(
+        host=os.getenv('DB_HOST'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        database=os.getenv('DB_NAME'),
+        port=os.getenv('DB_PORT')
+    )
 
 # 读取所有授权码
 def read_auth_codes():
-    auth_codes = []
-    if os.path.exists(AUTH_CODE_FILE):
-        with open(AUTH_CODE_FILE, mode='r') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                row['created_at'] = datetime.fromisoformat(row['created_at'])
-                row['expires_at'] = datetime.fromisoformat(row['expires_at'])
-                auth_codes.append(row)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT auth_code, created_at, expires_at FROM auth_codes")
+    auth_codes = cursor.fetchall()
+    cursor.close()
+    conn.close()
     return auth_codes
-
-# 写入所有授权码
-def write_auth_codes(auth_codes):
-    with open(AUTH_CODE_FILE, mode='w', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=['auth_code', 'created_at', 'expires_at'])
-        writer.writeheader()
-        for code in auth_codes:
-            writer.writerow({
-                'auth_code': code['auth_code'],
-                'created_at': code['created_at'].isoformat(timespec='seconds'),
-                'expires_at': code['expires_at'].isoformat(timespec='seconds')
-            })
 
 # 生成8位随机密钥
 def generate_auth_code():
@@ -81,24 +69,22 @@ def admin_add():
         return redirect(url_for('admin_login'))
 
     if request.method == 'POST':
-        auth_codes = read_auth_codes()
-        new_code = generate_auth_code()
-        while any(code['auth_code'] == new_code for code in auth_codes):
-            new_code = generate_auth_code()
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
+        new_code = generate_auth_code()
         created_at = datetime.now()
         expires_at_str = request.form.get('expires_at')
-        if expires_at_str:
-            expires_at = datetime.fromisoformat(expires_at_str)
-        else:
-            expires_at = created_at + timedelta(days=30)
+        expires_at = datetime.fromisoformat(expires_at_str) if expires_at_str else created_at + timedelta(days=30)
         
-        auth_codes.append({
-            'auth_code': new_code,
-            'created_at': created_at,
-            'expires_at': expires_at
-        })
-        write_auth_codes(auth_codes)
+        cursor.execute(
+            "INSERT INTO auth_codes (auth_code, created_at, expires_at) VALUES (%s, %s, %s)",
+            (new_code, created_at, expires_at)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
         return redirect(url_for('admin_index'))
     
     return render_template('admin_add.html')
@@ -108,9 +94,12 @@ def admin_delete(auth_code):
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
 
-    auth_codes = read_auth_codes()
-    auth_codes = [code for code in auth_codes if code['auth_code'] != auth_code]
-    write_auth_codes(auth_codes)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM auth_codes WHERE auth_code = %s", (auth_code,))
+    conn.commit()
+    cursor.close()
+    conn.close()
     return redirect(url_for('admin_index'))
 
 @app.route('/admin/edit/<auth_code>', methods=['GET', 'POST'])
@@ -118,19 +107,30 @@ def admin_edit(auth_code):
     if request.cookies.get('admin_logged_in') != 'true':
         return redirect(url_for('admin_login'))
 
-    auth_codes = read_auth_codes()
-    code_to_edit = next((code for code in auth_codes if code['auth_code'] == auth_code), None)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT auth_code, created_at, expires_at FROM auth_codes WHERE auth_code = %s", (auth_code,))
+    code_to_edit = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
     if not code_to_edit:
         return redirect(url_for('admin_index'))
 
     if request.method == 'POST':
         expires_at = datetime.fromisoformat(request.form['expires_at'])
-        code_to_edit['expires_at'] = expires_at
-        write_auth_codes(auth_codes)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE auth_codes SET expires_at = %s WHERE auth_code = %s",
+            (expires_at, auth_code)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
         return redirect(url_for('admin_index'))
 
     return render_template('admin_edit.html', auth_code=code_to_edit)
 
 if __name__ == '__main__':
-    init_csv()
-    app.run(host='0.0.0.0', port=5002)
+    app.run(host='0.0.0.0', port=5003)
