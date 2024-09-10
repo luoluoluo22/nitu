@@ -5,6 +5,7 @@ import string
 import os
 from dotenv import load_dotenv
 import mysql.connector
+from db import get_db_connection  # 引入数据库连接模块
 
 # 加载 .env 文件
 load_dotenv()
@@ -12,16 +13,6 @@ load_dotenv()
 app = Flask(__name__)
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 COOKIE_DURATION_DAYS = 365
-
-# 获取数据库连接
-def get_db_connection():
-    return mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME'),
-        port=os.getenv('DB_PORT')
-    )
 
 # 读取所有授权码
 def read_auth_codes():
