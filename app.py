@@ -10,11 +10,14 @@ import os
 import mysql.connector
 from dotenv import load_dotenv
 from db import get_db_connection  # 导入数据库连接模块
+from admin import admin_bp  # 导入 admin 蓝图
 
 # 加载 .env 文件
 load_dotenv()
 
 app = Flask(__name__)
+# 注册蓝图
+app.register_blueprint(admin_bp)
 # 存储最近一封邮件内容及其接收时间
 latest_email = {"code": "无", "received_at": datetime.now(), "sent_at": "未知"}
 # 从环境变量中读取配置
