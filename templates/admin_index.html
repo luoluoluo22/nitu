@@ -72,7 +72,7 @@
   <body>
     <div class="container">
       <h1>管理员面板</h1>
-      <a href="{{ url_for('admin_logout') }}" class="logout">登出</a>
+      <a href="{{ url_for('admin.admin_logout') }}" class="logout">登出</a>
       <table>
         <tr>
           <th>授权码</th>
@@ -91,10 +91,10 @@
           <td>{{ code.created_at }}</td>
           <td>{{ code.expires_at }}</td>
           <td>
-            <a href="{{ url_for('admin_edit', auth_code=code.auth_code) }}"
+            <a href="{{ url_for('admin.admin_edit', auth_code=code.auth_code) }}"
               >编辑</a
             >
-            <a href="{{ url_for('admin_delete', auth_code=code.auth_code) }}"
+            <a href="{{ url_for('admin.admin_delete', auth_code=code.auth_code) }}"
               >删除</a
             >
           </td>
