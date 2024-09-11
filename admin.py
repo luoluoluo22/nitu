@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, make_response
 from datetime import datetime, timedelta
 import random
 import string
@@ -9,8 +9,10 @@ from db import get_db_connection  # 引入数据库连接模块
 
 # 加载 .env 文件
 load_dotenv()
+
 # 创建 Blueprint
 admin_bp = Blueprint('admin', __name__)
+
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 COOKIE_DURATION_DAYS = 365
 
@@ -28,36 +30,40 @@ def read_auth_codes():
 def generate_auth_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
+# 管理员登录页面
 @admin_bp.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         password = request.form['password']
         if password == ADMIN_PASSWORD:
-            resp = make_response(redirect(url_for('admin_index')))
+            resp = make_response(redirect(url_for('admin.admin_dashboard')))
             resp.set_cookie('admin_logged_in', 'true', max_age=COOKIE_DURATION_DAYS * 24 * 60 * 60)
             return resp
         else:
             return render_template('admin_login.html', error=True)
     return render_template('admin_login.html', error=False)
 
+# 管理员登出
 @admin_bp.route('/admin/logout')
 def admin_logout():
-    resp = make_response(redirect(url_for('admin_login')))
+    resp = make_response(redirect(url_for('admin.admin_login')))
     resp.set_cookie('admin_logged_in', '', expires=0)
     return resp
 
+# 管理员仪表盘
 @admin_bp.route('/admin')
-def admin_index():
+def admin_dashboard():
     if request.cookies.get('admin_logged_in') != 'true':
-        return redirect(url_for('admin_login'))
-    
+        return redirect(url_for('admin.admin_login'))
+
     auth_codes = read_auth_codes()
     return render_template('admin_index.html', auth_codes=auth_codes)
 
+# 添加授权码
 @admin_bp.route('/admin/add', methods=['GET', 'POST'])
 def admin_add():
     if request.cookies.get('admin_logged_in') != 'true':
-        return redirect(url_for('admin_login'))
+        return redirect(url_for('admin.admin_login'))
 
     if request.method == 'POST':
         conn = get_db_connection()
@@ -76,14 +82,15 @@ def admin_add():
         cursor.close()
         conn.close()
         
-        return redirect(url_for('admin_index'))
+        return redirect(url_for('admin.admin_dashboard'))
     
     return render_template('admin_add.html')
 
+# 删除授权码
 @admin_bp.route('/admin/delete/<auth_code>')
 def admin_delete(auth_code):
     if request.cookies.get('admin_logged_in') != 'true':
-        return redirect(url_for('admin_login'))
+        return redirect(url_for('admin.admin_login'))
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -91,12 +98,13 @@ def admin_delete(auth_code):
     conn.commit()
     cursor.close()
     conn.close()
-    return redirect(url_for('admin_index'))
+    return redirect(url_for('admin.admin_dashboard'))
 
+# 编辑授权码
 @admin_bp.route('/admin/edit/<auth_code>', methods=['GET', 'POST'])
 def admin_edit(auth_code):
     if request.cookies.get('admin_logged_in') != 'true':
-        return redirect(url_for('admin_login'))
+        return redirect(url_for('admin.admin_login'))
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -106,7 +114,7 @@ def admin_edit(auth_code):
     conn.close()
 
     if not code_to_edit:
-        return redirect(url_for('admin_index'))
+        return redirect(url_for('admin.admin_dashboard'))
 
     if request.method == 'POST':
         expires_at = datetime.fromisoformat(request.form['expires_at'])
@@ -119,9 +127,7 @@ def admin_edit(auth_code):
         conn.commit()
         cursor.close()
         conn.close()
-        return redirect(url_for('admin_index'))
+        return redirect(url_for('admin.admin_dashboard'))
 
     return render_template('admin_edit.html', auth_code=code_to_edit)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002)
