@@ -114,7 +114,11 @@ def check_emails():
         mail.close()
     except Exception as e:
         print(f"发生错误：{e}")
-
+# 针对render的定期检查
+@app.route('/', methods=['HEAD'])
+def head_root():
+    return '', 204  # 返回 204 No Content 而非 302
+    
 # 首页
 @app.route('/')
 def index():
