@@ -1,17 +1,11 @@
 FROM python:3.9-slim
-
+RUN apt-get update && apt-get install -y nginx && apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-
-# 复制依赖文件
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
-
-# 复制应用代码
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-
-# 设置环境变量
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-
-# 启动 Flask 应用
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+RUN chmod +x start.sh
+EXPOSE 80
+ENV FLASK_ENV=production
+CMD ["sh", "-c", "./start.sh && sleep 5 && nginx -g 'daemon off;'"]
