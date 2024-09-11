@@ -1,6 +1,9 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # 加载 .env 文件
 load_dotenv()
@@ -20,5 +23,6 @@ def get_db_connection():
         conn = mysql.connector.connect(**DB_CONFIG)
         return conn
     except mysql.connector.Error as err:
+        logging.error(f"数据库连接失败: {err}")
         print(f"数据库连接失败: {err}")
         return None
